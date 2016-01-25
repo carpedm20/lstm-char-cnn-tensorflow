@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import tensorflow as tf
+from tensorflow
 
 from tensorflow.python.framework import ops
 
@@ -14,6 +15,24 @@ def conv2d(input_, output_dim,
               initializer=tf.truncated_normal_initializer(stddev=stddev))
     conv = tf.nn.conv2d(input_, w, strides=[1, d_h, d_w, 1], padding='SAME')
     return conv
+
+def highway(input_, size, layer_size, bias, f=tf.nn.relu):
+  """Highway Network (cf. http://arxiv.org/abs/1505.00387).
+  
+  z = t * g(Wy + b) + (1 - t) * y
+
+  where g is nonlinearity, t is transform gate, and (1 - t) is carry gate.
+  """
+  output = input_
+  for idx in xrange(layer_size):
+    output = f(rnn_ops.linear(output, size))
+
+    transform_gate = tf.sigmoid(nn.add_bias(rnn_cell.linear(input_, size), bias))
+    carry_gate = 1. - transform_gate
+
+    output = tf.matmul(transform_gate, output) + tf.matmul(carry_gate, input_)
+
+  return output
 
 class batch_norm(object):
   """Code modification of http://stackoverflow.com/a/33950177"""

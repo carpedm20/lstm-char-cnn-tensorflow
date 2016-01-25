@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tensorflow.models.rnn import rnn, rnn_cell
 
 from ops import conv2d
 from base import Model
@@ -58,7 +59,7 @@ class LSTMTDNN(Model):
 
         input_ = bn(input_)
 
-      self.cell = BasicLSTMCell(self.rnn_size)
+      self.cell = rnn_cell.BasicLSTMCell(self.rnn_size)
       self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_size)
 
       outputs, states = rnn.rnn(self.cell,
