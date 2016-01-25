@@ -8,7 +8,7 @@ class LSTMTDNN(object):
   """
   def __init__(self, rnn_size, layer_size, vocab_size, vocab_embed_size,
                feature_maps, kernels, length, word_or_char, highway_layers,
-               dropout_prob):
+               dropout_prob, use_batchnorm, hsm):
     """Initialize the parameters for LSTM TDNN
 
     Args:
@@ -19,50 +19,59 @@ class LSTMTDNN(object):
       feature_maps: list of feature maps (for each kernel width)
       kernels: list of kernel widths
       length: max length of a word
-      word_or_char: whether to use word or character embeddings
+      use_word: whether to use word embeddings or not
+      use_char: whether to use character embeddings or not
       highway_layers: # of highway layers to use
       dropout_prob: the probability of dropout
+      use_batchnorm: whether to use batch normalization or not
     """
     self.length = length
     self.input_size = input_size
     self.feature_maps = feature_maps
     self.kernels = kernels
 
-    self.input_ = tf.placeholder(tf.float32, [None, self.length, self.input_size])
-    embed = tf.get_variable("%s_embed" % word_or_char, [vocab_size, vocab_embed_size])
+    self.outputs = []
+    states = []
 
-    if use_chars:
-      char_embed = tf.embedding_lookup(embed, self.input_)
+    with tf.variable_scope("LSTMTDNN"):
+      self.input_ = tf.placeholder(tf.float32, [None, self.length, self.input_size])
+      embed = tf.get_variable("%s_embed" % word_or_char, [vocab_size, vocab_embed_size])
 
-      char_cnn = TDNN(self.length, self.vocab_embed_size, self.feature_maps, self.kernels)
-      input_size_length = ???
+      if use_chars:
+        char_embed = tf.embedding_lookup(embed, self.input_)
 
-      if use_words:
-        input_ = tf.concat(1, char_cnn.output, word_embed)
-        input_size_length = input_size_length + word_embed_size
+        char_cnn = TDNN(self.length, self.vocab_embed_size, self.feature_maps, self.kernels)
+        input_size_length = sum(feature_maps)
+
+        if use_words:
+          input_ = tf.concat(1, char_cnn.output, word_embed)
+          input_size_length = input_size_length + word_embed_size
+        else:
+          input_ = char_cnn.output
       else:
-        input_ = char_cnn.output
-    else:
-      input_ = tf.embedding_lookup(embed, self.input_)
-      input_size_length = vocab_embed_size
+        input_ = tf.embedding_lookup(embed, self.input_)
+        input_size_length = vocab_embed_size
 
-    for _ in xrange(self.layer_size):
-      self.inputs.append(
+      if use_batch_norm:
+        bn = batch_norm(batch_size, name='bn')
+        self.batch_norms.append(bn)
 
+        input_ = bn(input_)
 
-    # [batch_size x length x input_size]
-    input_ = tf.reshape(x, [-1, 1, self.length, self.input_size])
+      self.cell = BasicLSTMCell(self.rnn_size)
+      self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_size)
 
-    layers = []
-    for idx, kernel in enumerate(kernels):
-      reduced_length = length - kernel + 1
+      outputs, states = rnn.rnn(self.cell,
+                                input_,
+                                dtype=tf.float32)
 
-      conv = conv2d(input_, feature_maps[idx], self.input_size, kernel, 1, 1, 0)
-      pool = tf.squeeze(tf.nn.max_pool(conv, [1, 1, reduced_length, 1], [1, 1, 1, 1], 'SAME'))
+      top_h = outputs[-1]
+      if dropout_prob > 0:
+        top_h = tf.nn.dropout(top_h, dropout_prob)
 
-      layers.append(pool)
-
-    if len(kernels) > 1:
-      self.output = tf.concat(1, layers)
-    else:
-      self.output = layers[0]
+      if hsm > 0:
+        self.output = top_h
+      else:
+        proj = rnn_cell.linear(top_h, vocab_size)
+        log_softmax = tf.log(tf.nn.softmax(proj))
+        self.output = log_softmax
