@@ -6,6 +6,27 @@ Tensorflow implementation of [Character-Aware Neural Language Models](http://arx
 ![model.png](./assets/model.png)
 
 
+Prerequisites
+-------------
+
+- Python 2.7 or Python 3.3+
+- [Tensorflow](https://www.tensorflow.org/)
+
+
+Usage
+-----
+
+To train a model with `ptb` dataset:
+
+    $ python main.py --dataset ptb --is_train True
+
+To test an existing model:
+
+    $ python main.py --dataset ptb
+
+(in progress)
+
+
 Author
 ------
 
