@@ -5,6 +5,10 @@ Tensorflow implementation of [Character-Aware Neural Language Models](http://arx
 
 ![model.png](./assets/model.png)
 
+This implementation contains:
+
+1. Character-level Convolutional Neural Network
+
 
 Prerequisites
 -------------

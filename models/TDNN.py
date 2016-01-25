@@ -24,18 +24,23 @@ class TDNN(Model):
     self.kernels = kernels
 
     # [batch_size x length x input_size]
-    self.input_ = tf.placeholder(tf.float32, [None, self.length, self.input_size])
-    input_ = tf.reshape(self.input_, [-1, self.input_size, self.length, 1])
+    self.input_ = tf.placeholder(tf.float32, [10, self.length, self.input_size])
+    input_ = tf.reshape(self.input_, [-1, self.length, self.input_size, 1])
 
     layers = []
     for idx, kernel in enumerate(kernels):
       reduced_length = length - kernel + 1
 
-      conv = conv2d(input_, feature_maps[idx], self.input_size,
-                    kernel, 1, 1, 0, name="kernel%d" % idx)
-      pool = tf.squeeze(tf.nn.max_pool(conv, [1, 1, reduced_length, 1], [1, 1, 1, 1], 'SAME'))
+      # [batch_size x length x input_size x feature_map_size]
+      conv = conv2d(input_, feature_maps[idx], kernel, self.input_size,
+                    1, 1, 0, name="kernel%d" % idx)
+
+      # [batch_size x length x input_size x feature_map_size]
+      pool = tf.squeeze(tf.nn.max_pool(tf.tanh(conv), [1, 1, reduced_length, 1], [1, 1, 1, 1], 'SAME'))
 
       layers.append(pool)
+
+    import ipdb; ipdb.set_trace() 
 
     if len(kernels) > 1:
       self.output = tf.concat(1, layers)

@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import tensorflow as tf
-from tensorflow
+from tensorflow.models.rnn import rnn_cell
 
 from tensorflow.python.framework import ops
 
@@ -25,7 +25,7 @@ def highway(input_, size, layer_size, bias, f=tf.nn.relu):
   """
   output = input_
   for idx in xrange(layer_size):
-    output = f(rnn_ops.linear(output, size))
+    output = f(rnn_cell.linear(output, size))
 
     transform_gate = tf.sigmoid(nn.add_bias(rnn_cell.linear(input_, size), bias))
     carry_gate = 1. - transform_gate
