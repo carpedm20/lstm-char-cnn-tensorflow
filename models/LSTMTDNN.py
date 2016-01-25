@@ -1,9 +1,9 @@
 import tensorflow as tf
 
 from ops import conv2d
-from utils import *
+from base import Model
 
-class LSTMTDNN(object):
+class LSTMTDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
   """
   def __init__(self, rnn_size, layer_size, vocab_size, vocab_embed_size,
