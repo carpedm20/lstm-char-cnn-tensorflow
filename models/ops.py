@@ -1,27 +1,44 @@
 import math
 import numpy as np
 import tensorflow as tf
+from tensorflow.models.rnn import rnn_cell
 
 from tensorflow.python.framework import ops
 
 from utils import *
 
-def conv2d(input_, output_dim,
-           k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.02,
-           name="conv2d"):
+def conv2d(input_, output_dim, k_h, k_w,
+           stddev=0.02, name="conv2d"):
   with tf.variable_scope(name):
     w = tf.get_variable('w', [k_h, k_w, input_.get_shape()[-1], output_dim],
               initializer=tf.truncated_normal_initializer(stddev=stddev))
-    conv = tf.nn.conv2d(input_, w, strides=[1, d_h, d_w, 1], padding='SAME')
+    conv = tf.nn.conv2d(input_, w, strides=[1, 1, 1, 1], padding='VALID')
     return conv
+
+def highway(input_, size, layer_size, bias, f=tf.nn.relu):
+  """Highway Network (cf. http://arxiv.org/abs/1505.00387).
+  
+  z = t * g(Wy + b) + (1 - t) * y
+
+  where g is nonlinearity, t is transform gate, and (1 - t) is carry gate.
+  """
+  output = input_
+  for idx in xrange(layer_size):
+    output = f(rnn_cell.linear(output, size))
+
+    transform_gate = tf.sigmoid(nn.add_bias(rnn_cell.linear(input_, size), bias))
+    carry_gate = 1. - transform_gate
+
+    output = tf.matmul(transform_gate, output) + tf.matmul(carry_gate, input_)
+
+  return output
 
 class batch_norm(object):
   """Code modification of http://stackoverflow.com/a/33950177"""
-  def __init__(self, batch_size, epsilon=1e-5, momentum = 0.1, name="batch_norm"):
+  def __init__(self, epsilon=1e-5, momentum = 0.1, name="batch_norm"):
     with tf.variable_scope(name) as scope:
       self.epsilon = epsilon
       self.momentum = momentum
-      self.batch_size = batch_size
 
       self.ema = tf.train.ExponentialMovingAverage(decay=self.momentum)
       self.name=name
