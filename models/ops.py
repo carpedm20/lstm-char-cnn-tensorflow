@@ -15,9 +15,10 @@ def conv2d(input_, output_dim, k_h, k_w,
     conv = tf.nn.conv2d(input_, w, strides=[1, 1, 1, 1], padding='VALID')
     return conv
 
-def highway(input_, size, layer_size, bias, f=tf.nn.relu):
+def highway(input_, size, layer_size=1, bias=-2, f=tf.nn.relu):
   """Highway Network (cf. http://arxiv.org/abs/1505.00387).
   
+  t = sigmoid(Wy + b)
   z = t * g(Wy + b) + (1 - t) * y
 
   where g is nonlinearity, t is transform gate, and (1 - t) is carry gate.

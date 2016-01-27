@@ -15,6 +15,8 @@ Prerequisites
 
 - Python 2.7 or Python 3.3+
 - [Tensorflow](https://www.tensorflow.org/)
+- [NLTK](http://www.nltk.org/)
+- [Gensim](https://radimrehurek.com/gensim/index.html)
 
 
 Usage

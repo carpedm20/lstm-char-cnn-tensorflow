@@ -8,21 +8,23 @@ from TDNN import TDNN
 class LSTMTDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
   """
-  def __init__(self, vocab_size, batch_size=10, rnn_size=100, layer_depth=2,
+  def __init__(self,
+               batch_size=20, rnn_size=100, layer_depth=2,
                word_embed_dim=100, char_embed_dim=15,
                feature_maps=[50, 100, 150, 200, 200, 200, 200],
-               kernels=[1,2,3,4,5,6,7], seq_length=65,
-               use_word=False, use_char=True,
-               highway_layers=1, dropout_prob=0.5, use_batch_norm=True,
+               kernels=[1,2,3,4,5,6,7], seq_length=35,
+               use_word=False, use_char=True, hsm=False,
+               highway_layers=2, dropout_prob=0.5, use_batch_norm=True,
                checkpoint_dir="checkpoint", forward_only=False):
     """Initialize the parameters for LSTM TDNN
 
     Args:
       rnn_size: the dimensionality of hidden layers
       layer_depth: # of depth in LSTM layers
-      vocab_size: # of words in the vocabulary
       batch_size: size of batch per epoch
+      word_vocab_size: # of words in the vocabulary
       word_embed_dim: the dimensionality of word embeddings
+      char_vocab_size: # of character in the vocabulary
       char_embed_dim: the dimensionality of character embeddings
       feature_maps: list of feature maps (for each kernel width)
       kernels: list of kernel widths
@@ -32,13 +34,15 @@ class LSTMTDNN(Model):
       highway_layers: # of highway layers to use
       dropout_prob: the probability of dropout
       use_batch_norm: whether to use batch normalization or not
+      hsm: whether to use hierarchical softmax
     """
-    self.vocab_size = vocab_size
     self.batch_size = batch_size
     self.rnn_size = rnn_size
     self.layer_depth = layer_depth
     self.word_embed_dim = word_embed_dim
+    self.word_vocab_size = word_vocab_size
     self.char_embed_dim = char_embed_dim
+    self.char_vocab_size = char_vocab_size
     self.feature_maps = feature_maps
     self.kernels = kernels
     self.seq_length = seq_length
@@ -52,12 +56,13 @@ class LSTMTDNN(Model):
     self.outputs = []
     states = []
 
+  def prepare_model(self):
     with tf.variable_scope("LSTMTDNN"):
       self.input_ = tf.placeholder(tf.int32, [self.batch_size, self.seq_length])
       if use_char:
-        embed = tf.get_variable("char_embed", [vocab_size, char_embed_dim])
+        embed = tf.get_variable("char_embed", [char_vocab_size, char_embed_dim])
       else:
-        embed = tf.get_variable("word_embed", [vocab_size, word_embed_dim])
+        embed = tf.get_variable("word_embed", [word_vocab_size, word_embed_dim])
 
       if use_char:
         char_embed = tf.nn.embedding_lookup(embed, self.input_)
@@ -80,6 +85,9 @@ class LSTMTDNN(Model):
         norm_output = bn(tf.expand_dims(tf.expand_dims(input_, 1), 1))
         input_ = tf.squeeze(norm_output)
 
+      if highway:
+        input_ = highway(input_, 2, input_dim_length, 0)
+
       self.cell = rnn_cell.BasicLSTMCell(self.rnn_size)
       self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
 
@@ -97,3 +105,5 @@ class LSTMTDNN(Model):
         proj = rnn_cell.linear(top_h, vocab_size)
         log_softmax = tf.log(tf.nn.softmax(proj))
         self.output = log_softmax
+
+  def train(self, dataset, epoch=25, batch_size=20, learning_rate=1, decay=0.5):
