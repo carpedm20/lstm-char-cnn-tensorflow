@@ -17,6 +17,7 @@ Prerequisites
 - [Tensorflow](https://www.tensorflow.org/)
 - [NLTK](http://www.nltk.org/)
 - [Gensim](https://radimrehurek.com/gensim/index.html)
+- pickle
 
 
 Usage
