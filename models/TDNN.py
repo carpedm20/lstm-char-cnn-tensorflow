@@ -6,19 +6,17 @@ from base import Model
 class TDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
   """
-  def __init__(self, input_, seq_length=65, embed_dim=650,
+  def __init__(self, input_, embed_dim=650,
                feature_maps=[50, 100, 150, 200, 200, 200, 200],
                kernels=[1,2,3,4,5,6,7], checkpoint_dir="checkpoint",
                forward_only=False):
     """Initialize the parameters for TDNN
 
     Args:
-      seq_length: length of sentences/words (zero padded to be of same length)
       embed_dim: the dimensionality of the inputs
       feature_maps: list of feature maps (for each kernel width)
       kernels: list of # of kernels (width)
     """
-    self.seq_length = seq_length
     self.embed_dim = embed_dim
     self.feature_maps = feature_maps
     self.kernels = kernels
@@ -28,9 +26,9 @@ class TDNN(Model):
 
     layers = []
     for idx, kernel_dim in enumerate(kernels):
-      reduced_length = seq_length - kernel_dim + 1
+      reduced_length = input_.get_shape()[1] - kernel_dim + 1
 
-      # [batch_size x length x embed_dim x feature_map_dim]
+      # [batch_size x seq_length x embed_dim x feature_map_dim]
       conv = conv2d(input_, feature_maps[idx], kernel_dim , self.embed_dim,
                     name="kernel%d" % idx)
 

@@ -1,15 +1,18 @@
 import tensorflow as tf
 from tensorflow.models.rnn import rnn, rnn_cell
 
-from ops import conv2d, batch_norm
+from ops import conv2d, batch_norm, highway
 from base import Model
 from TDNN import TDNN
+from TDNN import TDNN
+from batch_loader import BatchLoader
 
 class LSTMTDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
   """
   def __init__(self,
                batch_size=20, rnn_size=100, layer_depth=2,
+               word_vocab_size=None, char_vicab_size=None,
                word_embed_dim=100, char_embed_dim=15,
                feature_maps=[50, 100, 150, 200, 200, 200, 200],
                kernels=[1,2,3,4,5,6,7], seq_length=35,
@@ -42,7 +45,6 @@ class LSTMTDNN(Model):
     self.word_embed_dim = word_embed_dim
     self.word_vocab_size = word_vocab_size
     self.char_embed_dim = char_embed_dim
-    self.char_vocab_size = char_vocab_size
     self.feature_maps = feature_maps
     self.kernels = kernels
     self.seq_length = seq_length
@@ -58,41 +60,45 @@ class LSTMTDNN(Model):
 
   def prepare_model(self):
     with tf.variable_scope("LSTMTDNN"):
-      self.input_ = tf.placeholder(tf.int32, [self.batch_size, self.seq_length])
-      if use_char:
-        embed = tf.get_variable("char_embed", [char_vocab_size, char_embed_dim])
+      self.char_indices = tf.placeholder(tf.int32, [self.batch_size, self.max_word_length])
+      self.word_indices = tf.placeholder(tf.int32, [self.batch_size, 1])
+
+      if self.use_char:
+        char_W = tf.get_variable("char_embed",
+            [self.char_vocab_size, self.char_embed_dim])
       else:
-        embed = tf.get_variable("word_embed", [word_vocab_size, word_embed_dim])
+        word_W = tf.get_variable("word_embed",
+            [self.word_vocab_size, self.word_embed_dim])
 
-      if use_char:
-        char_embed = tf.nn.embedding_lookup(embed, self.input_)
+      if self.use_char:
+        # [batch_size x word_max_length, char_embed]
+        char_embed = tf.nn.embedding_lookup(char_W, self.char_indices)
 
-        char_cnn = TDNN(char_embed, self.seq_length, 
-            self.char_embed_dim, self.feature_maps, self.kernels)
-        input_dim_length = sum(feature_maps)
+        char_cnn = TDNN(char_embed, self.char_embed_dim, self.feature_maps, self.kernels)
 
-        if use_word:
+        if self.use_word:
+          word_embed = tf.embedding_lookup(word_W, self.word_indices)
           input_ = tf.concat(1, char_cnn.output, word_embed)
-          input_dim_length = input_dim_length + word_embed_dim
         else:
           input_ = char_cnn.output
       else:
-        input_ = tf.embedding_lookup(embed, self.input_)
-        input_dim_length = word_embed_dim
+        input_ = tf.embedding_lookup(word_W, self.word_indices)
 
-      if use_batch_norm:
+      if self.use_batch_norm:
         bn = batch_norm()
         norm_output = bn(tf.expand_dims(tf.expand_dims(input_, 1), 1))
         input_ = tf.squeeze(norm_output)
 
       if highway:
-        input_ = highway(input_, 2, input_dim_length, 0)
+        #input_ = highway(input_, input_dim_length, self.highway_layers, 0)
+        input_ = highway(input_, input_.get_shape()[1], self.highway_layers, 0)
 
       self.cell = rnn_cell.BasicLSTMCell(self.rnn_size)
       self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
 
       outputs, states = rnn.rnn(self.cell,
                                 input_,
+                                seq_length=self.seq_length,
                                 dtype=tf.float32)
 
       top_h = outputs[-1]
@@ -106,4 +112,15 @@ class LSTMTDNN(Model):
         log_softmax = tf.log(tf.nn.softmax(proj))
         self.output = log_softmax
 
-  def train(self, dataset, epoch=25, batch_size=20, learning_rate=1, decay=0.5):
+  def train(self, sess, dataset, max_word_length=65, 
+            epoch=25, batch_size=20, learning_rate=1, 
+            decay=0.5, data_dir='data'):
+    loader = BatchLoader(data_dir, dataset, batch_size, self.seq_length, max_word_length)
+    print('Word vocab size: %d, Char vocab size: %d, Max word length (incl. padding): %d' % \
+        (len(loader.idx2word), len(loader.idx2char), loader.max_word_length))
+
+    self.max_word_length = loader.max_word_length
+    self.char_vocab_size = len(loader.idx2char)
+    self.word_vocab_size = len(loader.idx2word)
+
+    self.prepare_model()

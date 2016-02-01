@@ -25,12 +25,13 @@ def highway(input_, size, layer_size=1, bias=-2, f=tf.nn.relu):
   """
   output = input_
   for idx in xrange(layer_size):
-    output = f(rnn_cell.linear(output, size))
+    output = f(rnn_cell.linear(output, size, 0, scope='output_lin_%d' % idx))
 
-    transform_gate = tf.sigmoid(nn.add_bias(rnn_cell.linear(input_, size), bias))
+    transform_gate = tf.sigmoid(
+        rnn_cell.linear(input_, size, 0, scope='transform_lin_%d' % idx) + bias)
     carry_gate = 1. - transform_gate
 
-    output = tf.matmul(transform_gate, output) + tf.matmul(carry_gate, input_)
+    output = transform_gate * output + carry_gate * input_
 
   return output
 
