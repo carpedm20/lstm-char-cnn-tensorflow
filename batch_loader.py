@@ -69,7 +69,7 @@ class BatchLoader(object):
         self.sizes.append(1)
       self.all_batches.append([x_batches, y_batches, x_char_batches])
 
-    self.bathc_idx = [0, 0, 0]
+    self.batch_idx = [0, 0, 0]
     print("data load done. Number of batches in train: %d, val: %d, test: %d" \
         % (self.sizes[0], self.sizes[1], self.sizes[2]))
 
@@ -77,10 +77,10 @@ class BatchLoader(object):
     if self.batch_idx[split_idx] > self.sizes[split_idx]:
       self.batch_idx[split_idx] = 1
     idx = self.batch_idx[split_idx]
-    self.batch_idx[split_idx] = se;f/batch_idx[split_idx] + 1
+    self.batch_idx[split_idx] = self.batch_idx[split_idx] + 1
     return self.all_batches[split_idx][0][idx], \
            self.all_batches[split_idx][1][idx], \
-           self.all_batches[split_idx][1][idx]
+           self.all_batches[split_idx][2][idx]
 
   def text_to_tensor(self, input_files, vocab_fname, tensor_fname, char_fname, max_word_length):
     max_word_length_tmp = 0

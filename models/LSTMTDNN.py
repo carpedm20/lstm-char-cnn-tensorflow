@@ -152,7 +152,12 @@ class LSTMTDNN(Model):
 
     self.prepare_model()
 
-    x, y, x_char = loader.next_batch(1)
-    import ipdb; ipdb.set_trace() 
+    while True:
+      x, y, x_char = loader.next_batch(1)
 
-    sess.run([], {})
+      feed_dict = {
+          self.char_inputs: None,
+          self.word_inputs: None,
+          self.true_outputs: None
+      }
+      _, loss = sess.run([self.optim, self.loss], feed_dict=feed_dict)
