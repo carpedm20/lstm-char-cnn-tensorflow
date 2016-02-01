@@ -16,7 +16,7 @@ class LSTMTDNN(Model):
                word_embed_dim=100, char_embed_dim=15,
                feature_maps=[50, 100, 150, 200, 200, 200, 200],
                kernels=[1,2,3,4,5,6,7], seq_length=35,
-               use_word=False, use_char=True, hsm=False,
+               use_word=False, use_char=True, hsm=0,
                highway_layers=2, dropout_prob=0.5, use_batch_norm=True,
                checkpoint_dir="checkpoint", forward_only=False):
     """Initialize the parameters for LSTM TDNN
@@ -54,6 +54,7 @@ class LSTMTDNN(Model):
     self.dropout_prob = dropout_prob
     self.use_batch_norm = use_batch_norm
     self.kernels = kernels
+    self.hsm = hsm
 
     self.outputs = []
     states = []
@@ -62,61 +63,71 @@ class LSTMTDNN(Model):
     with tf.variable_scope("LSTMTDNN"):
       self.char_inputs = []
       self.word_inputs = []
+      self.cnn_outputs = []
 
-      for idx in xrange(self.seq_length):
-        self.char_indices = tf.placeholder(tf.int32, [self.batch_size, self.max_word_length])
-        self.word_indices = tf.placeholder(tf.int32, [self.batch_size, 1])
-
-        self.char_inputs.append(self.char_indices)
-        self.word_inputs.append(self.word_indices)
-
-        if self.use_char:
-          char_W = tf.get_variable("char_embed",
-              [self.char_vocab_size, self.char_embed_dim])
-        else:
-          word_W = tf.get_variable("word_embed",
-              [self.word_vocab_size, self.word_embed_dim])
-
-        if self.use_char:
-          # [batch_size x word_max_length, char_embed]
-          char_embed = tf.nn.embedding_lookup(char_W, self.char_indices)
-
-          char_cnn = TDNN(char_embed, self.char_embed_dim, self.feature_maps, self.kernels)
-
-          if self.use_word:
-            word_embed = tf.embedding_lookup(word_W, self.word_indices)
-            input_ = tf.concat(1, char_cnn.output, word_embed)
-          else:
-            input_ = char_cnn.output
-        else:
-          input_ = tf.embedding_lookup(word_W, self.word_indices)
-
-        if self.use_batch_norm:
-          bn = batch_norm()
-          norm_output = bn(tf.expand_dims(tf.expand_dims(input_, 1), 1))
-          input_ = tf.squeeze(norm_output)
-
-        if highway:
-          #input_ = highway(input_, input_dim_length, self.highway_layers, 0)
-          input_ = highway(input_, input_.get_shape()[1], self.highway_layers, 0)
-
-      self.cell = rnn_cell.BasicLSTMCell(self.rnn_size)
-      self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
-
-      outputs, states = rnn.rnn(self.cell,
-                                input_,
-                                dtype=tf.float32)
-
-      top_h = outputs[-1]
-      if dropout_prob > 0:
-        top_h = tf.nn.dropout(top_h, dropout_prob)
-
-      if hsm > 0:
-        self.output = top_h
+      if self.use_char:
+        char_W = tf.get_variable("char_embed",
+            [self.char_vocab_size, self.char_embed_dim])
       else:
-        proj = rnn_cell.linear(top_h, vocab_size)
-        log_softmax = tf.log(tf.nn.softmax(proj))
-        self.output = log_softmax
+        word_W = tf.get_variable("word_embed",
+            [self.word_vocab_size, self.word_embed_dim])
+
+      with tf.variable_scope("CNN") as scope:
+        for idx in xrange(self.seq_length):
+          self.char_indices = tf.placeholder(tf.int32, [self.batch_size, self.max_word_length])
+          self.word_indices = tf.placeholder(tf.int32, [self.batch_size, 1])
+
+          self.char_inputs.append(self.char_indices)
+          self.word_inputs.append(self.word_indices)
+
+          if self.use_char:
+            # [batch_size x word_max_length, char_embed]
+            char_embed = tf.nn.embedding_lookup(char_W, self.char_indices)
+
+            if idx != 0:
+              scope.reuse_variables()
+            char_cnn = TDNN(char_embed, self.char_embed_dim, self.feature_maps, self.kernels)
+
+            if self.use_word:
+              word_embed = tf.embedding_lookup(word_W, self.word_indices)
+              cnn_output = tf.concat(1, char_cnn.output, word_embed)
+            else:
+              cnn_output = char_cnn.output
+          else:
+            cnn_output = tf.embedding_lookup(word_W, self.word_indices)
+
+          if self.use_batch_norm:
+            bn = batch_norm()
+            norm_output = bn(tf.expand_dims(tf.expand_dims(cnn_output, 1), 1))
+            cnn_output = tf.squeeze(norm_output)
+
+          if highway:
+            #cnn_output = highway(input_, input_dim_length, self.highway_layers, 0)
+            cnn_output = highway(cnn_output, cnn_output.get_shape()[1], self.highway_layers, 0)
+
+          self.cnn_outputs.append(cnn_output)
+
+      with tf.variable_scope("LSTM") as scope:
+        self.cell = rnn_cell.BasicLSTMCell(self.rnn_size)
+        self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
+
+        outputs, states = rnn.rnn(self.cell,
+                                  self.cnn_outputs,
+                                  dtype=tf.float32)
+
+        self.lstm_outputs = []
+        for idx, top_h in enumerate(outputs):
+          if self.dropout_prob > 0:
+            top_h = tf.nn.dropout(top_h, self.dropout_prob)
+
+          if self.hsm > 0:
+            self.lstm_outputs.append(top_h)
+          else:
+            if idx != 0:
+              scope.reuse_variables()
+            proj = rnn_cell.linear(top_h, self.word_vocab_size, 0)
+            log_softmax = tf.log(tf.nn.softmax(proj))
+            self.lstm_outputs.append(log_softmax)
 
   def train(self, sess, dataset, max_word_length=65, 
             epoch=25, batch_size=20, learning_rate=1, 
