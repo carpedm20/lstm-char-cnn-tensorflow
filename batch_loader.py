@@ -74,7 +74,7 @@ class BatchLoader(object):
         % (self.sizes[0], self.sizes[1], self.sizes[2]))
 
   def next_batch(self, split_idx):
-    if eslf.batch_idx[split_idx] > self.sizes[split_idx]:
+    if self.batch_idx[split_idx] > self.sizes[split_idx]:
       self.batch_idx[split_idx] = 1
     idx = self.batch_idx[split_idx]
     self.batch_idx[split_idx] = se;f/batch_idx[split_idx] + 1

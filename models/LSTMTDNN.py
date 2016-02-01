@@ -116,7 +116,13 @@ class LSTMTDNN(Model):
                                   dtype=tf.float32)
 
         self.lstm_outputs = []
-        for idx, top_h in enumerate(outputs):
+        self.true_outputs = tf.placeholder(tf.float32,
+            [self.batch_size, self.seq_length, self.word_vocab_size])
+
+        self.loss = 0
+        true_outputs = tf.split(1, self.seq_length, self.true_outputs)
+
+        for idx, (top_h, true_output) in enumerate(zip(outputs, true_outputs)):
           if self.dropout_prob > 0:
             top_h = tf.nn.dropout(top_h, self.dropout_prob)
 
@@ -128,6 +134,10 @@ class LSTMTDNN(Model):
             proj = rnn_cell.linear(top_h, self.word_vocab_size, 0)
             log_softmax = tf.log(tf.nn.softmax(proj))
             self.lstm_outputs.append(log_softmax)
+
+          self.loss += tf.nn.softmax_cross_entropy_with_logits(self.lstm_outputs[idx],
+                                                               tf.squeeze(true_output))
+        self.loss = self.loss / self.seq_length
 
   def train(self, sess, dataset, max_word_length=65, 
             epoch=25, batch_size=20, learning_rate=1, 
@@ -141,3 +151,8 @@ class LSTMTDNN(Model):
     self.word_vocab_size = len(loader.idx2word)
 
     self.prepare_model()
+
+    x, y, x_char = loader.next_batch(1)
+    import ipdb; ipdb.set_trace() 
+
+    sess.run([], {})
