@@ -258,6 +258,7 @@ class LSTMTDNN(Model):
 
     self.lr = tf.Variable(learning_rate, trainable=False)
     self.opt = tf.train.GradientDescentOptimizer(self.lr)
+    #self.opt = tf.train.AdamOptimizer(learning_rate, beta1=0.5).minimize(self.loss)
 
     # clip gradients
     params = tf.trainable_variables()
@@ -305,7 +306,7 @@ class LSTMTDNN(Model):
           self.lr.assign(self.current_lr).eval()
         if self.current_lr < 1e-5: break
 
-        if idx % 5 == 0:
+        if idx % 2 == 0:
           self.save(self.checkpoint_dir, self.dataset_name)
           self.test(sess, 1)
 
