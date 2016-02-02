@@ -3,10 +3,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.models.rnn import rnn, rnn_cell
 
-from utils import progress
+from TDNN import TDNN
 from base import Model
-from TDNN import TDNN
-from TDNN import TDNN
+
+from utils import progress
 from batch_loader import BatchLoader
 from ops import conv2d, batch_norm, highway
 
