@@ -80,6 +80,17 @@ which will print
 but more options can be found in [models/LSTMTDNN](./models/LSTMTDNN.py) and [models/TDNN](./models/TDNN.py).
 
 
+Performance
+-----------
+
+The perplexity on the test sets of Penn Treebank (PTB) corpora.
+
+|       Name      | Dim of char. embeddings | LSTM hidden units | Character-Aware. (Y Kim 2016) |  This repo. |
+|:---------------:|:-----------------------:|:-----------------:|:-----------------------------:|:-----------:|
+| LSTM-Char-Small |            15           |        100        |              92.3             | in progress |
+| LSTM-Char-Large |            15           |        150        |              78.9             | in progress |
+
+
 Author
 ------
 
