@@ -3,17 +3,17 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.models.rnn import rnn, rnn_cell
 
-from utils import pp, progress
+from TDNN import TDNN
 from base import Model
-from TDNN import TDNN
-from TDNN import TDNN
+
+from utils import progress
 from batch_loader import BatchLoader
 from ops import conv2d, batch_norm, highway
 
 class LSTMTDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
   """
-  def __init__(self,
+  def __init__(self, sess,
                batch_size=100, rnn_size=200, layer_depth=2,
                word_embed_dim=650, char_embed_dim=15,
                feature_maps=[50, 100, 150, 200, 200, 200, 200],
@@ -40,6 +40,8 @@ class LSTMTDNN(Model):
       use_batch_norm: whether to use batch normalization or not
       hsm: whether to use hierarchical softmax
     """
+    self.sess = sess
+
     self.batch_size = batch_size
     self.seq_length = seq_length
 
@@ -84,12 +86,11 @@ class LSTMTDNN(Model):
     self.prepare_model()
 
     # load checkpoints
-    if self.load(self.checkpoint_dir, dataset_name):
-      print(" [*] SUCCESS to load model for %s." % dataset_name)
-    else:
-      print(" [!] Failed to load model for %s." % dataset_name)
-
-      if self.forward_only == True:
+    if self.forward_only == True:
+      if self.load(self.checkpoint_dir, self.dataset_name):
+        print(" [*] SUCCESS to load model for %s." % self.dataset_name)
+      else:
+        print(" [!] Failed to load model for %s." % self.dataset_name)
         sys.exit(1)
 
   def prepare_model(self):
@@ -179,7 +180,7 @@ class LSTMTDNN(Model):
         tf.scalar_summary("loss", self.loss)
         tf.scalar_summary("perplexity", tf.exp(self.loss))
 
-  def train(self, sess, epoch):
+  def train(self, epoch):
     cost = 0
     target = np.zeros([self.batch_size, self.seq_length, self.word_vocab_size]) 
 
@@ -197,21 +198,21 @@ class LSTMTDNN(Model):
           self.true_outputs: target,
       }
 
-      _, loss, step, summary_str = sess.run(
+      _, loss, step, summary_str = self.sess.run(
           [self.optim, self.loss, self.global_step, self.merged_summary], feed_dict=feed_dict)
 
-      if self.use_progressbar:
-        progress(idx/N, "Epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, step, N, loss))
-      else:
-        print("Epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, step, N, loss))
+      self.writer.add_summary(summary_str, step)
 
-      if idx % 10 == 0:
-        self.writer.add_summary(summary_str, step)
+      if idx % 50 == 0:
+        if self.use_progressbar:
+          progress(idx/N, "epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, idx, N, loss))
+        else:
+          print("epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, idx, N, loss))
 
       cost += loss
     return cost / N
 
-  def test(self, sess, split_idx, max_batches=None):
+  def test(self, split_idx, max_batches=None):
     if split_idx == 1:
       set_name = 'Valid'
     else:
@@ -239,25 +240,26 @@ class LSTMTDNN(Model):
           self.true_outputs: target,
       }
 
-      _, loss = sess.run([self.optim, self.loss], feed_dict=feed_dict)
+      loss = self.sess.run([self.loss], feed_dict=feed_dict)
 
-      if self.use_progressbar:
-        progress(idx/N, "> %s: loss: %2.6f, perplexity: %2.6f" % (set_name, loss, np.exp(loss)))
-      else:
-        print(" > %s: loss: %2.6f, perplexity: %2.6f" % (set_name, loss, np.exp(loss)))
+      if idx % 50 == 0:
+        if self.use_progressbar:
+          progress(idx/N, "> %s: loss: %2.6f, perplexity: %2.6f" % (set_name, loss, np.exp(loss)))
+        else:
+          print(" > %s: loss: %2.6f, perplexity: %2.6f" % (set_name, loss, np.exp(loss)))
 
       cost += loss
 
     cost = cost / N
     return cost
 
-  def run(self, sess, epoch=25, 
+  def run(self, epoch=25, 
           learning_rate=1, learning_rate_decay=0.5):
-    self.sess = sess
     self.current_lr = learning_rate
 
     self.lr = tf.Variable(learning_rate, trainable=False)
     self.opt = tf.train.GradientDescentOptimizer(self.lr)
+    #self.opt = tf.train.AdamOptimizer(learning_rate, beta1=0.5).minimize(self.loss)
 
     # clip gradients
     params = tf.trainable_variables()
@@ -275,17 +277,22 @@ class LSTMTDNN(Model):
     # ready for train
     tf.initialize_all_variables().run()
 
+    if self.load(self.checkpoint_dir, self.dataset_name):
+      print(" [*] SUCCESS to load model for %s." % self.dataset_name)
+    else:
+      print(" [!] Failed to load model for %s." % self.dataset_name)
+
     self.saver = tf.train.Saver()
     self.merged_summary = tf.merge_all_summaries()
-    self.writer = tf.train.SummaryWriter("./logs", sess.graph_def)
+    self.writer = tf.train.SummaryWriter("./logs", self.sess.graph_def)
 
     self.log_loss = []
     self.log_perp = []
 
     if not self.forward_only:
       for idx in xrange(epoch):
-        train_loss = self.train(sess, epoch=idx)
-        valid_loss = self.test(sess, 1)
+        train_loss = self.train(idx)
+        valid_loss = self.test(1)
 
         # Logging
         self.log_loss.append([train_loss, valid_loss])
@@ -297,7 +304,7 @@ class LSTMTDNN(Model):
           'learning_rate': self.current_lr,
           'valid_perplexity': np.exp(valid_loss)
         }
-        pp.pprint(state)
+        print(state)
 
         # Learning rate annealing
         if len(self.log_loss) > 1 and self.log_loss[idx][1] > self.log_loss[idx-1][1] * 0.9999:
@@ -305,9 +312,8 @@ class LSTMTDNN(Model):
           self.lr.assign(self.current_lr).eval()
         if self.current_lr < 1e-5: break
 
-        if idx % 5 == 0:
+        if idx % 2 == 0:
           self.save(self.checkpoint_dir, self.dataset_name)
-          self.test(sess, 1)
 
-    test_loss = self.test(sess, 2)
+    test_loss = self.test(2)
     print(" [*] Test loss: %2.6f, perplexity: %2.6f" % (test_loss, np.exp(test_loss)))

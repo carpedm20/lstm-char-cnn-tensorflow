@@ -39,7 +39,7 @@ def main(_):
     os.makedirs(FLAGS.checkpoint_dir)
 
   with tf.Session() as sess:
-    model = model_dict[FLAGS.model](checkpoint_dir=FLAGS.checkpoint_dir,
+    model = model_dict[FLAGS.model](sess, checkpoint_dir=FLAGS.checkpoint_dir,
                                     seq_length=FLAGS.seq_length,
                                     word_embed_dim=FLAGS.word_embed_dim,
                                     char_embed_dim=FLAGS.char_embed_dim,
@@ -53,7 +53,7 @@ def main(_):
                                     data_dir=FLAGS.data_dir)
 
     if not FLAGS.forward_only:
-      model.run(sess, FLAGS.epoch, FLAGS.learning_rate, FLAGS.decay)
+      model.run(FLAGS.epoch, FLAGS.learning_rate, FLAGS.decay)
 
 if __name__ == '__main__':
   tf.app.run()

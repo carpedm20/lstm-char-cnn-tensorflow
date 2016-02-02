@@ -17,9 +17,6 @@ Prerequisites
 
 - Python 2.7 or Python 3.3+
 - [Tensorflow](https://www.tensorflow.org/)
-- [NLTK](http://www.nltk.org/)
-- [Gensim](https://radimrehurek.com/gensim/index.html)
-- [pickle](https://docs.python.org/3/library/pickle.html)
 
 
 Usage
@@ -80,15 +77,7 @@ which will print
                             True for forward only, False for training [False]
       --noforward_only
 
-but more options can be found in [models/LSTMTDNN](models/LSTMTDNN) and [models/TDNN](models/TDNN).
-
-
-Performance
------------
-
-The perplexity on the test sets of Penn Treebank corpora.
-
-(in progress)
+but more options can be found in [models/LSTMTDNN](./models/LSTMTDNN.py) and [models/TDNN](./models/TDNN.py).
 
 
 Author
