@@ -14,7 +14,7 @@ class LSTMTDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
   """
   def __init__(self, sess,
-               batch_size=100, rnn_size=200, layer_depth=2,
+               batch_size=100, rnn_size=650, layer_depth=2,
                word_embed_dim=650, char_embed_dim=15,
                feature_maps=[50, 100, 150, 200, 200, 200, 200],
                kernels=[1,2,3,4,5,6,7], seq_length=35, max_word_length=65,

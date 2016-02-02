@@ -91,6 +91,8 @@ but more options can be found in [models/LSTMTDNN](./models/LSTMTDNN.py) and [mo
 Performance
 -----------
 
+![loss](./assets/performance.png)
+
 The perplexity on the test sets of Penn Treebank (PTB) corpora.
 
 |       Name      | Character embed | LSTM hidden units | Paper (Y Kim 2016) |  This repo. |
