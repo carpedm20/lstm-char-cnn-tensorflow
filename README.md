@@ -80,14 +80,6 @@ which will print
 but more options can be found in [models/LSTMTDNN](./models/LSTMTDNN.py) and [models/TDNN](./models/TDNN.py).
 
 
-Performance
------------
-
-The perplexity on the test sets of Penn Treebank corpora.
-
-(in progress)
-
-
 Author
 ------
 
