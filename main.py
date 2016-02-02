@@ -54,6 +54,9 @@ def main(_):
 
     if not FLAGS.forward_only:
       model.run(FLAGS.epoch, FLAGS.learning_rate, FLAGS.decay)
+    else:
+      test_loss = model.test(2)
+      print(" [*] Test loss: %2.6f, perplexity: %2.6f" % (test_loss, np.exp(test_loss)))
 
 if __name__ == '__main__':
   tf.app.run()
