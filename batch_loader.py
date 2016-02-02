@@ -4,8 +4,6 @@ import math
 import pickle
 import numpy as np
 
-import gensim
-
 
 def save(fname, obj):
   with open(fname, 'w') as f:
