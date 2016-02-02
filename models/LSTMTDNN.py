@@ -203,7 +203,7 @@ class LSTMTDNN(Model):
 
       self.writer.add_summary(summary_str, step)
 
-      if idx % 5 == 0:
+      if idx % 10 == 0:
         if self.use_progressbar:
           progress(idx/N, "epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, idx, N, loss))
         else:
@@ -240,9 +240,9 @@ class LSTMTDNN(Model):
           self.true_outputs: target,
       }
 
-      _, loss = self.sess.run([self.optim, self.loss], feed_dict=feed_dict)
+      loss = self.sess.run([self.loss], feed_dict=feed_dict)
 
-      if idx % 5 == 0:
+      if idx % 10 == 0:
         if self.use_progressbar:
           progress(idx/N, "> %s: loss: %2.6f, perplexity: %2.6f" % (set_name, loss, np.exp(loss)))
         else:
