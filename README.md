@@ -1,5 +1,5 @@
-Character-Aware Neural Language Models in Tensorflow
-====================================================
+Character-Aware Neural Language Models
+======================================
 
 Tensorflow implementation of [Character-Aware Neural Language Models](http://arxiv.org/abs/1508.06615). The original code of author can be found [here](https://github.com/yoonkim/lstm-char-cnn).
 
@@ -27,11 +27,11 @@ Usage
 
 To train a model with `ptb` dataset:
 
-    $ python main.py --dataset ptb --is_train True
+    $ python main.py --dataset ptb
 
 To test an existing model:
 
-    $ python main.py --dataset ptb
+    $ python main.py --dataset ptb --forward_only True
 
 To see all training options, run:
 
@@ -80,7 +80,7 @@ which will print
                             True for forward only, False for training [False]
       --noforward_only
 
-but more options can be found [models/LSTMTDNN](models/LSTMTDNN) and [models/TDNN](models/TDNN).
+but more options can be found in [models/LSTMTDNN](models/LSTMTDNN) and [models/TDNN](models/TDNN).
 
 
 Performance

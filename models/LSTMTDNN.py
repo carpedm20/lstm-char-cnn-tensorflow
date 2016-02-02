@@ -253,6 +253,9 @@ class LSTMTDNN(Model):
 
   def run(self, sess, epoch=25, 
           learning_rate=1, learning_rate_decay=0.5):
+    self.sess = sess
+    self.current_lr = learning_rate
+
     self.lr = tf.Variable(learning_rate, trainable=False)
     self.opt = tf.train.GradientDescentOptimizer(self.lr)
 
