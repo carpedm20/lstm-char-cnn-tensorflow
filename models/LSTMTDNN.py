@@ -132,11 +132,11 @@ class LSTMTDNN(Model):
             else:
               cnn_output = char_cnn.output
           else:
-            cnn_output = tf.nn.embedding_lookup(word_W, word_index)
+            cnn_output = tf.squeeze(tf.nn.embedding_lookup(word_W, word_index))
 
           if self.use_batch_norm:
             bn = batch_norm()
-            norm_output = bn(tf.expand_dims(cnn_output, 1))
+            norm_output = bn(tf.expand_dims(tf.expand_dims(cnn_output, 1), 1))
             cnn_output = tf.squeeze(norm_output)
 
           if highway:
