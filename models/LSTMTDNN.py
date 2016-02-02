@@ -3,7 +3,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.models.rnn import rnn, rnn_cell
 
-from utils import pp, progress
+from utils import progress
 from base import Model
 from TDNN import TDNN
 from TDNN import TDNN
@@ -201,11 +201,11 @@ class LSTMTDNN(Model):
           [self.optim, self.loss, self.global_step, self.merged_summary], feed_dict=feed_dict)
 
       if self.use_progressbar:
-        progress(idx/N, "Epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, step, N, loss))
+        progress(idx/N, "Epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, idx, N, loss))
       else:
-        print("Epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, step, N, loss))
+        print("Epoch: [%2d] [%4d/%4d] loss: %2.6f" % (epoch, idx, N, loss))
 
-      if idx % 10 == 0:
+      if idx % 5 == 0:
         self.writer.add_summary(summary_str, step)
 
       cost += loss
@@ -297,7 +297,7 @@ class LSTMTDNN(Model):
           'learning_rate': self.current_lr,
           'valid_perplexity': np.exp(valid_loss)
         }
-        pp.pprint(state)
+        print(state)
 
         # Learning rate annealing
         if len(self.log_loss) > 1 and self.log_loss[idx][1] > self.log_loss[idx-1][1] * 0.9999:
