@@ -240,7 +240,7 @@ class LSTMTDNN(Model):
           self.true_outputs: target,
       }
 
-      loss = self.sess.run([self.loss], feed_dict=feed_dict)
+      loss = self.sess.run(self.loss, feed_dict=feed_dict)
 
       if idx % 50 == 0:
         if self.use_progressbar:
