@@ -47,8 +47,8 @@ class BatchLoader(object):
     print("Reshaping tensors...")
     for split, data in enumerate(all_data): # split = 0:train, 1:valid, 2:test
       length = data.shape[0]
-      if length % (batch_size * seq_length) != 0 and split < 2:
-        data = data[: batch_size * seq_length * math.floor(length / (batch_size * seq_length))]
+      #if length % (batch_size * seq_length) != 0 and split < 2:
+      data = data[: batch_size * seq_length * math.floor(length / (batch_size * seq_length))]
       ydata = np.zeros_like(data)
       ydata[:-1] = data[1:].copy()
       ydata[-1] = data[0].copy()
@@ -63,10 +63,14 @@ class BatchLoader(object):
         x_char_batches = list(data_char.reshape([-1, batch_size, seq_length, self.max_word_length]))
         self.sizes.append(len(x_batches))
       else:
-        x_batches = None
-        y_batches = None
-        y_char_batches = None
-        self.sizes.append(1)
+        x_batches = list(data.reshape([-1, batch_size, seq_length]))
+        y_batches = list(ydata.reshape([-1, batch_size, seq_length]))
+        x_char_batches = list(data_char.reshape([-1, batch_size, seq_length, self.max_word_length]))
+        self.sizes.append(len(x_batches))
+        # x_batches = np.tile(data, (batch_size, 1))
+        # y_batches = np.tile(ydata, (batch_size, 1))
+        # x_char_batches = np.tile(data_char, (batch_size, 1)).reshape(batch_size, -1, data_char.shape[1])
+        # self.sizes.append(1)
       self.all_batches.append([x_batches, y_batches, x_char_batches])
 
     self.batch_idx = [0, 0, 0]
@@ -74,13 +78,19 @@ class BatchLoader(object):
         % (self.sizes[0], self.sizes[1], self.sizes[2]))
 
   def next_batch(self, split_idx):
-    if self.batch_idx[split_idx] > self.sizes[split_idx]:
-      self.batch_idx[split_idx] = 1
+    # cycle around to beginning
+    if self.batch_idx[split_idx] >= self.sizes[split_idx]:
+      self.batch_idx[split_idx] = 0
     idx = self.batch_idx[split_idx]
     self.batch_idx[split_idx] = self.batch_idx[split_idx] + 1
     return self.all_batches[split_idx][0][idx], \
            self.all_batches[split_idx][1][idx], \
            self.all_batches[split_idx][2][idx]
+
+  def reset_batch_pointer(self, split_idx, batch_idx=None):
+    if batch_idx == None:
+      batch_idx = 0
+    self.batch_idx[split_idx] = batch_idx
 
   def text_to_tensor(self, input_files, vocab_fname, tensor_fname, char_fname, max_word_length):
     max_word_length_tmp = 0

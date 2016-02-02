@@ -8,14 +8,6 @@ class Model(object):
     self.vocab = None
     self.data = None
 
-  def train(self, sess, vocab_size, epoch=25,
-            learning_rate=1, decay=0.5,
-            data_dir='data', dataset_name='ptb'):
-    pass
-    grads_and_vars = self.opt.compute_gradients(self.loss,params)
-    clipped_grads_and_vars = [(tf.clip_by_norm(gv[0], self.max_grad_norm), gv[1]) \
-                               for gv in grads_and_vars]
-
   def save(self, checkpoint_dir, dataset_name):
     self.saver = tf.train.Saver()
 

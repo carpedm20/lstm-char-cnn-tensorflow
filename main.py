@@ -9,11 +9,16 @@ from utils import pp
 
 flags = tf.app.flags
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
+flags.DEFINE_integer("word_embed_dim", 650, "The dimension of word embedding matrix [650]")
+flags.DEFINE_integer("char_embed_dim", 15, "The dimension of char embedding matrix [15]")
 flags.DEFINE_integer("max_word_length", 65, "The maximum length of word [65]")
 flags.DEFINE_integer("batch_size", 32, "The size of batch images [32]")
-flags.DEFINE_float("learning_rate", 5e-5, "Learning rate [0.00005]")
-flags.DEFINE_float("momentum", 0.9, "Momentum of RMSProp [0.9]")
-flags.DEFINE_float("decay", 0.95, "Decay of RMSProp [0.95]")
+flags.DEFINE_integer("seq_length", 35, "The # of timesteps to unroll for [35]")
+flags.DEFINE_float("learning_rate", 1.0, "Learning rate [1.0]")
+flags.DEFINE_float("decay", 0.5, "Decay of RMSProp [0.5]")
+flags.DEFINE_float("dropout_prob", 0.5, "Probability of dropout layer [0.5]")
+flags.DEFINE_string("feature_maps", "[50,100,150,200,200,200,200]", "The # of feature maps in CNN [50,100,150,200,200,200,200]")
+flags.DEFINE_string("kernels", "[1,2,3,4,5,6,7]", "The width of CNN kernels [1,2,3,4,5,6,7]")
 flags.DEFINE_string("model", "LSTMTDNN", "The type of model to train and test [LSTM, LSTMTDNN]")
 flags.DEFINE_string("data_dir", "data", "The name of data directory [data]")
 flags.DEFINE_string("dataset", "ptb", "The name of dataset [ptb]")
@@ -35,14 +40,20 @@ def main(_):
 
   with tf.Session() as sess:
     model = model_dict[FLAGS.model](checkpoint_dir=FLAGS.checkpoint_dir,
-                                    forward_only=FLAGS.forward_only)
+                                    seq_length=FLAGS.seq_length,
+                                    word_embed_dim=FLAGS.word_embed_dim,
+                                    char_embed_dim=FLAGS.char_embed_dim,
+                                    feature_maps=eval(FLAGS.feature_maps),
+                                    kernels=eval(FLAGS.kernels),
+                                    batch_size=FLAGS.batch_size,
+                                    dropout_prob=FLAGS.dropout_prob,
+                                    max_word_length=FLAGS.max_word_length,
+                                    forward_only=FLAGS.forward_only,
+                                    dataset_name=FLAGS.dataset,
+                                    data_dir=FLAGS.data_dir)
 
     if not FLAGS.forward_only:
-      model.train(sess, FLAGS.dataset, FLAGS.max_word_length,
-                  FLAGS.epoch, FLAGS.batch_size, FLAGS.learning_rate,
-                  FLAGS.decay, FLAGS.data_dir)
-    else:
-      model.load(FLAGS.checkpoint_dir)
+      model.run(sess, FLAGS.epoch, FLAGS.learning_rate, FLAGS.decay)
 
 if __name__ == '__main__':
   tf.app.run()
