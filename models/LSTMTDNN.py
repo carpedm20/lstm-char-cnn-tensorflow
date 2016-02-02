@@ -117,25 +117,26 @@ class LSTMTDNN(Model):
           char_index = tf.reshape(char_indices[idx], [-1, self.max_word_length])
           word_index = tf.reshape(word_indices[idx], [-1, 1])
 
+          if idx != 0:
+            scope.reuse_variables()
+
           if self.use_char:
             # [batch_size x word_max_length, char_embed]
             char_embed = tf.nn.embedding_lookup(char_W, char_index)
 
-            if idx != 0:
-              scope.reuse_variables()
             char_cnn = TDNN(char_embed, self.char_embed_dim, self.feature_maps, self.kernels)
 
             if self.use_word:
-              word_embed = tf.embedding_lookup(word_W, word_index)
+              word_embed = tf.nn.embedding_lookup(word_W, word_index)
               cnn_output = tf.concat(1, char_cnn.output, word_embed)
             else:
               cnn_output = char_cnn.output
           else:
-            cnn_output = tf.embedding_lookup(word_W, word_index)
+            cnn_output = tf.nn.embedding_lookup(word_W, word_index)
 
           if self.use_batch_norm:
             bn = batch_norm()
-            norm_output = bn(tf.expand_dims(tf.expand_dims(cnn_output, 1), 1))
+            norm_output = bn(tf.expand_dims(cnn_output, 1))
             cnn_output = tf.squeeze(norm_output)
 
           if highway:
