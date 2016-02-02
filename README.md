@@ -45,6 +45,8 @@ which will print
                   [--model MODEL] [--data_dir DATA_DIR] [--dataset DATASET]
                   [--checkpoint_dir CHECKPOINT_DIR]
                   [--forward_only [FORWARD_ONLY]] [--noforward_only]
+                  [--use_char [USE_CHAR]] [--nouse_char] [--use_word [USE_WORD]]
+                  [--nouse_word]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -56,7 +58,7 @@ which will print
       --max_word_length MAX_WORD_LENGTH
                             The maximum length of word [65]
       --batch_size BATCH_SIZE
-                            The size of batch images [32]
+                            The size of batch images [100]
       --seq_length SEQ_LENGTH
                             The # of timesteps to unroll for [35]
       --learning_rate LEARNING_RATE
@@ -76,6 +78,12 @@ which will print
       --forward_only [FORWARD_ONLY]
                             True for forward only, False for training [False]
       --noforward_only
+      --use_char [USE_CHAR]
+                            Use character-level language model [True]
+      --nouse_char
+      --use_word [USE_WORD]
+                            Use word-level language [False]
+      --nouse_word
 
 but more options can be found in [models/LSTMTDNN](./models/LSTMTDNN.py) and [models/TDNN](./models/TDNN.py).
 

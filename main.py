@@ -24,6 +24,8 @@ flags.DEFINE_string("data_dir", "data", "The name of data directory [data]")
 flags.DEFINE_string("dataset", "ptb", "The name of dataset [ptb]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_boolean("forward_only", False, "True for forward only, False for training [False]")
+flags.DEFINE_boolean("use_char", True, "Use character-level language model [True]")
+flags.DEFINE_boolean("use_word", False, "Use word-level language [False]")
 FLAGS = flags.FLAGS
 
 model_dict = {
@@ -50,6 +52,8 @@ def main(_):
                                     max_word_length=FLAGS.max_word_length,
                                     forward_only=FLAGS.forward_only,
                                     dataset_name=FLAGS.dataset,
+                                    use_char=FLAGS.use_char,
+                                    use_word=FLAGS.use_word,
                                     data_dir=FLAGS.data_dir)
 
     if not FLAGS.forward_only:
