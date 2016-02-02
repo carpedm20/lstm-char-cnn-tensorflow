@@ -77,7 +77,7 @@ which will print
                             True for forward only, False for training [False]
       --noforward_only
 
-but more options can be found in [models/LSTMTDNN](models/LSTMTDNN) and [models/TDNN](models/TDNN).
+but more options can be found in [models/LSTMTDNN](./models/LSTMTDNN.py) and [models/TDNN](./models/TDNN.py).
 
 
 Performance
