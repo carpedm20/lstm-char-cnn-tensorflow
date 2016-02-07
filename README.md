@@ -11,6 +11,8 @@ This implementation contains:
 2. Highway Network
 3. Recurrent Neural Network Language Model
 
+*The current implementation has a performance issue. See [#3](https://github.com/carpedm20/lstm-char-cnn-tensorflow/issues/3)*
+
 
 Prerequisites
 -------------
