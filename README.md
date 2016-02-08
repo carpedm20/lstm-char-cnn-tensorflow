@@ -65,7 +65,7 @@ which will print
                             The # of timesteps to unroll for [35]
       --learning_rate LEARNING_RATE
                             Learning rate [1.0]
-      --decay DECAY         Decay of RMSProp [0.5]
+      --decay DECAY         Decay of SGD [0.5]
       --dropout_prob DROPOUT_PROB
                             Probability of dropout layer [0.5]
       --feature_maps FEATURE_MAPS
