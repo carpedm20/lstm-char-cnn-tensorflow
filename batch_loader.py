@@ -156,7 +156,7 @@ class BatchLoader(object):
             for idx in xrange(min(len(chars), max_word_length)):
               output_char[word_num][idx] = chars[idx]
 
-            if len(char) == max_word_length:
+            if len(chars) == max_word_length:
               chars[-1] = char2idx['}']
             word_num += 1
 
