@@ -153,11 +153,11 @@ class BatchLoader(object):
               chars.append(char2idx[char])
             chars.append(char2idx['}'])
 
-            for idx in xrange(min(len(chars), max_word_length)):
-              output_char[word_num][idx] = chars[idx]
-
             if len(chars) == max_word_length:
               chars[-1] = char2idx['}']
+
+            for idx in xrange(min(len(chars), max_word_length)):
+              output_char[word_num][idx] = chars[idx]
             word_num += 1
 
         output_tensors.append(output_tensor)
