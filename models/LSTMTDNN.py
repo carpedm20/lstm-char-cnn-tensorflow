@@ -149,7 +149,7 @@ class LSTMTDNN(Model):
         self.cell = rnn_cell.BasicLSTMCell(self.rnn_size)
         self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
 
-        outputs, _ = rnn.rnn(self.cell,
+        outputs, _ = rnn.rnn(self.stacked_cell,
                              self.cnn_outputs,
                              dtype=tf.float32)
 
