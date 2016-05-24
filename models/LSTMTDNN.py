@@ -154,8 +154,8 @@ class LSTMTDNN(Model):
                              dtype=tf.float32)
 
         self.lstm_outputs = []
-        self.true_outputs = tf.placeholder(tf.float32,
-            [self.batch_size, self.seq_length, self.word_vocab_size])
+        self.true_outputs = tf.placeholder(tf.int64,
+            [self.batch_size, self.seq_length])
 
         loss = 0
         true_outputs = tf.split(1, self.seq_length, self.true_outputs)
@@ -170,11 +170,9 @@ class LSTMTDNN(Model):
             if idx != 0:
               scope.reuse_variables()
             proj = rnn_cell.linear(top_h, self.word_vocab_size, 0)
-            log_softmax = tf.log(tf.nn.softmax(proj))
-            self.lstm_outputs.append(log_softmax)
+            self.lstm_outputs.append(proj)
 
-          loss += tf.nn.softmax_cross_entropy_with_logits(self.lstm_outputs[idx],
-                                                               tf.squeeze(true_output))
+          loss += tf.nn.sparse_softmax_cross_entropy_with_logits(self.lstm_outputs[idx], tf.squeeze(true_output))
 
         self.loss = tf.reduce_mean(loss) / self.seq_length
 
@@ -183,7 +181,7 @@ class LSTMTDNN(Model):
 
   def train(self, epoch):
     cost = 0
-    target = np.zeros([self.batch_size, self.seq_length, self.word_vocab_size]) 
+    target = np.zeros([self.batch_size, self.seq_length]) 
 
     N = self.loader.sizes[0]
     for idx in xrange(N):
@@ -191,7 +189,7 @@ class LSTMTDNN(Model):
       x, y, x_char = self.loader.next_batch(0)
       for b in xrange(self.batch_size):
         for t, w in enumerate(y[b]):
-          target[b][t][w] = 1
+          target[b][t] = w
 
       feed_dict = {
           self.word_inputs: x,
@@ -266,7 +264,7 @@ class LSTMTDNN(Model):
     params = tf.trainable_variables()
     grads = []
     for grad in tf.gradients(self.loss, params):
-      if grad:
+      if grad is not None:
         grads.append(tf.clip_by_norm(grad, self.max_grad_norm))
       else:
         grads.append(grad)
