@@ -1,7 +1,6 @@
 import math
 import numpy as np
 import tensorflow as tf
-from tensorflow.models.rnn import rnn_cell
 
 from tensorflow.python.framework import ops
 
@@ -25,10 +24,10 @@ def highway(input_, size, layer_size=1, bias=-2, f=tf.nn.relu):
   """
   output = input_
   for idx in xrange(layer_size):
-    output = f(rnn_cell.linear(output, size, 0, scope='output_lin_%d' % idx))
+    output = f(tf.nn.rnn_cell._linear(output, size, 0, scope='output_lin_%d' % idx))
 
     transform_gate = tf.sigmoid(
-        rnn_cell.linear(input_, size, 0, scope='transform_lin_%d' % idx) + bias)
+        tf.nn.rnn_cell._linear(input_, size, 0, scope='transform_lin_%d' % idx) + bias)
     carry_gate = 1. - transform_gate
 
     output = transform_gate * output + carry_gate * input_

@@ -1,7 +1,6 @@
 import sys
 import numpy as np
 import tensorflow as tf
-from tensorflow.models.rnn import rnn, rnn_cell
 
 from TDNN import TDNN
 from base import Model
@@ -104,7 +103,7 @@ class LSTMTDNN(Model):
       if self.use_char:
         char_W = tf.get_variable("char_embed",
             [self.char_vocab_size, self.char_embed_dim])
-      else:
+      if self.use_word:
         word_W = tf.get_variable("word_embed",
             [self.word_vocab_size, self.word_embed_dim])
 
@@ -130,7 +129,7 @@ class LSTMTDNN(Model):
 
             if self.use_word:
               word_embed = tf.nn.embedding_lookup(word_W, word_index)
-              cnn_output = tf.concat(1, char_cnn.output, word_embed)
+              cnn_output = tf.concat(1, [char_cnn.output, tf.squeeze(word_embed, [1])])
             else:
               cnn_output = char_cnn.output
           else:
@@ -148,12 +147,12 @@ class LSTMTDNN(Model):
           self.cnn_outputs.append(cnn_output)
 
       with tf.variable_scope("LSTM") as scope:
-        self.cell = rnn_cell.BasicLSTMCell(self.rnn_size)
-        self.stacked_cell = rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
+        self.cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_size)
+        self.stacked_cell = tf.nn.rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
 
-        outputs, _ = rnn.rnn(self.stacked_cell,
-                             self.cnn_outputs,
-                             dtype=tf.float32)
+        outputs, _ = tf.nn.rnn(self.stacked_cell,
+                               self.cnn_outputs,
+                               dtype=tf.float32)
 
         self.lstm_outputs = []
         self.true_outputs = tf.placeholder(tf.int64,
@@ -171,7 +170,7 @@ class LSTMTDNN(Model):
           else:
             if idx != 0:
               scope.reuse_variables()
-            proj = rnn_cell.linear(top_h, self.word_vocab_size, 0)
+            proj = tf.nn.rnn_cell._linear(top_h, self.word_vocab_size, 0)
             self.lstm_outputs.append(proj)
 
           loss += tf.nn.sparse_softmax_cross_entropy_with_logits(self.lstm_outputs[idx], tf.squeeze(true_output))
