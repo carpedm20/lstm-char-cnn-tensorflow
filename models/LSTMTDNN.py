@@ -11,7 +11,8 @@ from batch_loader import BatchLoader
 from ops import conv2d, batch_norm, highway
 
 class LSTMTDNN(Model):
-  """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
+  """
+  Time-delayed Neural Network (cf. http://arxiv.org/abs/1508.06615v4)
   """
   def __init__(self, sess,
                batch_size=100, rnn_size=650, layer_depth=2,
@@ -22,7 +23,8 @@ class LSTMTDNN(Model):
                highway_layers=2, dropout_prob=0.5, use_batch_norm=True,
                checkpoint_dir="checkpoint", forward_only=False,
                data_dir="data", dataset_name="pdb", use_progressbar=False):
-    """Initialize the parameters for LSTM TDNN
+    """
+    Initialize the parameters for LSTM TDNN
 
     Args:
       rnn_size: the dimensionality of hidden layers
@@ -88,9 +90,9 @@ class LSTMTDNN(Model):
     # load checkpoints
     if self.forward_only == True:
       if self.load(self.checkpoint_dir, self.dataset_name):
-        print(" [*] SUCCESS to load model for %s." % self.dataset_name)
+        print("[*] SUCCESS to load model for %s." % self.dataset_name)
       else:
-        print(" [!] Failed to load model for %s." % self.dataset_name)
+        print("[!] Failed to load model for %s." % self.dataset_name)
         sys.exit(1)
 
   def prepare_model(self):
@@ -222,7 +224,7 @@ class LSTMTDNN(Model):
       N = min(max_batches, N)
 
     self.loader.reset_batch_pointer(split_idx)
-    target = np.zeros([self.batch_size, self.seq_length, self.word_vocab_size]) 
+    target = np.zeros([self.batch_size, self.seq_length]) 
 
     cost = 0
     for idx in xrange(N):
@@ -231,7 +233,7 @@ class LSTMTDNN(Model):
       x, y, x_char = self.loader.next_batch(split_idx)
       for b in xrange(self.batch_size):
         for t, w in enumerate(y[b]):
-          target[b][t][w] = 1
+          target[b][t] = w
 
       feed_dict = {
           self.word_inputs: x,
@@ -277,9 +279,9 @@ class LSTMTDNN(Model):
     tf.initialize_all_variables().run()
 
     if self.load(self.checkpoint_dir, self.dataset_name):
-      print(" [*] SUCCESS to load model for %s." % self.dataset_name)
+      print("[*] SUCCESS to load model for %s." % self.dataset_name)
     else:
-      print(" [!] Failed to load model for %s." % self.dataset_name)
+      print("[!] Failed to load model for %s." % self.dataset_name)
 
     self.saver = tf.train.Saver()
     self.merged_summary = tf.merge_all_summaries()
@@ -315,4 +317,4 @@ class LSTMTDNN(Model):
           self.save(self.checkpoint_dir, self.dataset_name)
 
     test_loss = self.test(2)
-    print(" [*] Test loss: %2.6f, perplexity: %2.6f" % (test_loss, np.exp(test_loss)))
+    print("[*] Test loss: %2.6f, perplexity: %2.6f" % (test_loss, np.exp(test_loss)))
