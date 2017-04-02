@@ -93,6 +93,8 @@ but more options can be found in [models/LSTMTDNN](./models/LSTMTDNN.py) and [mo
 Performance
 -----------
 
+**Failed to reproduce the results of paper (2016.02.12)**. If you are looking for a code that reproduced the paper's result, see https://github.com/mkroutikov/tf-lstm-char-cnn.
+
 ![loss](./assets/performance.png)
 
 The perplexity on the test sets of Penn Treebank (PTB) corpora.
