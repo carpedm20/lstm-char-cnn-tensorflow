@@ -2,7 +2,7 @@ import sys
 import pprint
 
 try:
-    xrange
+    range
 except NameError:
     xrange = range
 

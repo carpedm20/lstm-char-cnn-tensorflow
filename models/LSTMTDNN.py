@@ -2,12 +2,12 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from TDNN import TDNN
-from base import Model
+from .TDNN import TDNN
+from .base import Model
 
 from utils import progress
 from batch_loader import BatchLoader
-from ops import conv2d, batch_norm, highway
+from .ops import conv2d, batch_norm, highway
 
 class LSTMTDNN(Model):
   """
@@ -114,7 +114,7 @@ class LSTMTDNN(Model):
         char_indices = tf.split(1, self.seq_length, self.char_inputs)
         word_indices = tf.split(1, self.seq_length, tf.expand_dims(self.word_inputs, -1))
 
-        for idx in xrange(self.seq_length):
+        for idx in range(self.seq_length):
           char_index = tf.reshape(char_indices[idx], [-1, self.max_word_length])
           word_index = tf.reshape(word_indices[idx], [-1, 1])
 
@@ -147,8 +147,8 @@ class LSTMTDNN(Model):
           self.cnn_outputs.append(cnn_output)
 
       with tf.variable_scope("LSTM") as scope:
-        self.cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_size)
-        self.stacked_cell = tf.nn.rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
+        self.cell = tf.contrib.rnn.BasicLSTMCell(self.rnn_size)
+        self.stacked_cell = tf.contrib.rnn.MultiRNNCell([self.cell] * self.layer_depth)
 
         outputs, _ = tf.nn.rnn(self.stacked_cell,
                                self.cnn_outputs,
@@ -170,7 +170,7 @@ class LSTMTDNN(Model):
           else:
             if idx != 0:
               scope.reuse_variables()
-            proj = tf.nn.rnn_cell._linear(top_h, self.word_vocab_size, 0)
+            proj = tf.contrib.rnn._linear(top_h, self.word_vocab_size, 0)
             self.lstm_outputs.append(proj)
 
           loss += tf.nn.sparse_softmax_cross_entropy_with_logits(self.lstm_outputs[idx], tf.squeeze(true_output))
@@ -185,10 +185,10 @@ class LSTMTDNN(Model):
     target = np.zeros([self.batch_size, self.seq_length]) 
 
     N = self.loader.sizes[0]
-    for idx in xrange(N):
+    for idx in range(N):
       target.fill(0)
       x, y, x_char = self.loader.next_batch(0)
-      for b in xrange(self.batch_size):
+      for b in range(self.batch_size):
         for t, w in enumerate(y[b]):
           target[b][t] = w
 
@@ -226,11 +226,11 @@ class LSTMTDNN(Model):
     target = np.zeros([self.batch_size, self.seq_length]) 
 
     cost = 0
-    for idx in xrange(N):
+    for idx in range(N):
       target.fill(0)
 
       x, y, x_char = self.loader.next_batch(split_idx)
-      for b in xrange(self.batch_size):
+      for b in range(self.batch_size):
         for t, w in enumerate(y[b]):
           target[b][t] = w
 
@@ -290,7 +290,7 @@ class LSTMTDNN(Model):
     self.log_perp = []
 
     if not self.forward_only:
-      for idx in xrange(epoch):
+      for idx in range(epoch):
         train_loss = self.train(idx)
         valid_loss = self.test(1)
 

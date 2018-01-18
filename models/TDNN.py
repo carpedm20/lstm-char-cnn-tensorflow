@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from .ops import conv2d
-from base import Model
+from .base import Model
 
 class TDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
