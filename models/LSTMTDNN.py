@@ -2,12 +2,14 @@ import sys
 import numpy as np
 import tensorflow as tf
 
-from TDNN import TDNN
-from base import Model
+from tensorflow.contrib.rnn.python.ops import core_rnn_cell
+
+from .TDNN import TDNN
+from .base import Model
 
 from utils import progress
 from batch_loader import BatchLoader
-from ops import conv2d, batch_norm, highway
+from .ops import conv2d, batch_norm, highway
 
 class LSTMTDNN(Model):
   """
@@ -107,14 +109,21 @@ class LSTMTDNN(Model):
         word_W = tf.get_variable("word_embed",
             [self.word_vocab_size, self.word_embed_dim])
 
-      with tf.variable_scope("CNN") as scope:
+      with tf.variable_scope("CNN", reuse=tf.AUTO_REUSE) as scope:
         self.char_inputs = tf.placeholder(tf.int32, [self.batch_size, self.seq_length, self.max_word_length])
         self.word_inputs = tf.placeholder(tf.int32, [self.batch_size, self.seq_length])
 
-        char_indices = tf.split(1, self.seq_length, self.char_inputs)
-        word_indices = tf.split(1, self.seq_length, tf.expand_dims(self.word_inputs, -1))
+        char_inputs_shape = self.char_inputs.get_shape().as_list()
+        print("log 001 %s" % str(char_inputs_shape))
 
-        for idx in xrange(self.seq_length):
+        # old -- split(split_dim, num_split, value, name="split")
+        # new -- split(value, num_or_size_splits, axis=0, num=None, name='split')
+        # char_indices = tf.split(1, self.seq_length, self.char_inputs)
+        # word_indices = tf.split(1, self.seq_length, tf.expand_dims(self.word_inputs, -1))
+        char_indices = tf.split(self.char_inputs, self.seq_length, axis=1)
+        word_indices = tf.split(tf.expand_dims(self.word_inputs, -1), self.seq_length, axis=1)
+
+        for idx in range(self.seq_length):
           char_index = tf.reshape(char_indices[idx], [-1, self.max_word_length])
           word_index = tf.reshape(word_indices[idx], [-1, 1])
 
@@ -129,7 +138,8 @@ class LSTMTDNN(Model):
 
             if self.use_word:
               word_embed = tf.nn.embedding_lookup(word_W, word_index)
-              cnn_output = tf.concat(1, [char_cnn.output, tf.squeeze(word_embed, [1])])
+              # cnn_output = tf.concat(1, [char_cnn.output, tf.squeeze(word_embed, [1])])
+              cnn_output = tf.concat([char_cnn.output, tf.squeeze(word_embed, [1])], 1)
             else:
               cnn_output = char_cnn.output
           else:
@@ -141,25 +151,33 @@ class LSTMTDNN(Model):
             cnn_output = tf.squeeze(norm_output)
 
           if highway:
-            #cnn_output = highway(input_, input_dim_length, self.highway_layers, 0)
+            # cnn_output = highway(input_, input_dim_length, self.highway_layers, 0)
             cnn_output = highway(cnn_output, cnn_output.get_shape()[1], self.highway_layers, 0)
 
           self.cnn_outputs.append(cnn_output)
+        cnn_output_shape = self.cnn_outputs[0].get_shape().as_list()
+        print("log 002 %d" % len(self.cnn_outputs))
+        print("log 003 %s" % str(cnn_output_shape))
 
       with tf.variable_scope("LSTM") as scope:
-        self.cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_size)
-        self.stacked_cell = tf.nn.rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
+        # self.cell = tf.nn.rnn_cell.BasicLSTMCell(self.rnn_size)
+        # self.stacked_cell = tf.nn.rnn_cell.MultiRNNCell([self.cell] * self.layer_depth)
+        # self.cell = tf.contrib.rnn.BasicLSTMCell(self.rnn_size)
+        # self.stacked_cell = tf.contrib.rnn.MultiRNNCell([self.cell] * self.layer_depth)
+        def lstm_cell():
+          cell = tf.contrib.rnn.BasicLSTMCell(self.rnn_size)
+          return cell
+        self.stacked_cell = tf.contrib.rnn.MultiRNNCell([lstm_cell() for _ in range(self.layer_depth)])
 
-        outputs, _ = tf.nn.rnn(self.stacked_cell,
-                               self.cnn_outputs,
-                               dtype=tf.float32)
+        outputs, _ = tf.contrib.rnn.static_rnn(self.stacked_cell, self.cnn_outputs, dtype=tf.float32)
 
         self.lstm_outputs = []
         self.true_outputs = tf.placeholder(tf.int64,
             [self.batch_size, self.seq_length])
 
         loss = 0
-        true_outputs = tf.split(1, self.seq_length, self.true_outputs)
+        # true_outputs = tf.split(1, self.seq_length, self.true_outputs)
+        true_outputs = tf.split(self.true_outputs, self.seq_length, axis=1)
 
         for idx, (top_h, true_output) in enumerate(zip(outputs, true_outputs)):
           if self.dropout_prob > 0:
@@ -170,25 +188,30 @@ class LSTMTDNN(Model):
           else:
             if idx != 0:
               scope.reuse_variables()
-            proj = tf.nn.rnn_cell._linear(top_h, self.word_vocab_size, 0)
+            # proj = tf.nn.rnn_cell._linear(top_h, self.word_vocab_size, 0)
+            proj = core_rnn_cell._linear(top_h, self.word_vocab_size, 0)
             self.lstm_outputs.append(proj)
 
-          loss += tf.nn.sparse_softmax_cross_entropy_with_logits(self.lstm_outputs[idx], tf.squeeze(true_output))
+          # loss += tf.nn.sparse_softmax_cross_entropy_with_logits(self.lstm_outputs[idx], tf.squeeze(true_output))
+          loss += tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.lstm_outputs[idx], labels=tf.squeeze(true_output))
 
         self.loss = tf.reduce_mean(loss) / self.seq_length
 
-        tf.scalar_summary("loss", self.loss)
-        tf.scalar_summary("perplexity", tf.exp(self.loss))
+        # move to tf.summary.scalar()
+        # tf.scalar_summary("loss", self.loss)
+        # tf.scalar_summary("perplexity", tf.exp(self.loss))
+        tf.summary.scalar("loss", self.loss)
+        tf.summary.scalar("perplexity", tf.exp(self.loss))
 
   def train(self, epoch):
     cost = 0
     target = np.zeros([self.batch_size, self.seq_length]) 
 
     N = self.loader.sizes[0]
-    for idx in xrange(N):
+    for idx in range(N):
       target.fill(0)
       x, y, x_char = self.loader.next_batch(0)
-      for b in xrange(self.batch_size):
+      for b in range(self.batch_size):
         for t, w in enumerate(y[b]):
           target[b][t] = w
 
@@ -226,11 +249,11 @@ class LSTMTDNN(Model):
     target = np.zeros([self.batch_size, self.seq_length]) 
 
     cost = 0
-    for idx in xrange(N):
+    for idx in range(N):
       target.fill(0)
 
       x, y, x_char = self.loader.next_batch(split_idx)
-      for b in xrange(self.batch_size):
+      for b in range(self.batch_size):
         for t, w in enumerate(y[b]):
           target[b][t] = w
 
@@ -275,7 +298,9 @@ class LSTMTDNN(Model):
                                           global_step=self.global_step)
 
     # ready for train
-    tf.initialize_all_variables().run()
+    # change init function
+    # tf.initialize_all_variables().run()
+    tf.global_variables_initializer().run()
 
     if self.load(self.checkpoint_dir, self.dataset_name):
       print("[*] SUCCESS to load model for %s." % self.dataset_name)
@@ -283,14 +308,19 @@ class LSTMTDNN(Model):
       print("[!] Failed to load model for %s." % self.dataset_name)
 
     self.saver = tf.train.Saver()
-    self.merged_summary = tf.merge_all_summaries()
-    self.writer = tf.train.SummaryWriter("./logs", self.sess.graph_def)
+    # move to tf.summary.merge_all()
+    # self.merged_summary = tf.merge_all_summaries()
+    self.merged_summary = tf.summary.merge_all()
+    # move to tf.summary.FileWriter
+    # Passing a `GraphDef` to the SummaryWriter is deprecated. Pass a `Graph` object instead
+    # self.writer = tf.train.SummaryWriter("./logs", self.sess.graph_def)
+    self.writer = tf.summary.FileWriter("./logs", self.sess.graph)
 
     self.log_loss = []
     self.log_perp = []
 
     if not self.forward_only:
-      for idx in xrange(epoch):
+      for idx in range(epoch):
         train_loss = self.train(idx)
         valid_loss = self.test(1)
 

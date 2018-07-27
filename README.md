@@ -18,6 +18,7 @@ Prerequisites
 -------------
 
 - Python 2.7 or Python 3.3+
+> note this version only support Python3.x
 - [Tensorflow](https://www.tensorflow.org/)
 
 
@@ -26,15 +27,15 @@ Usage
 
 To train a model with `ptb` dataset:
 
-    $ python main.py --dataset ptb
+    $ python3 main.py --dataset ptb
 
 To test an existing model:
 
-    $ python main.py --dataset ptb --forward_only True
+    $ python3 main.py --dataset ptb --forward_only True
 
 To see all training options, run:
 
-    $ python main.py --help
+    $ python3 main.py --help
 
 which will print
 
