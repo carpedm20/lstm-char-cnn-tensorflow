@@ -1,2 +1,2 @@
-from TDNN import TDNN
-from LSTMTDNN import LSTMTDNN
+from .TDNN import TDNN
+from .LSTMTDNN import LSTMTDNN

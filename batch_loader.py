@@ -6,12 +6,12 @@ import numpy as np
 
 
 def save(fname, obj):
-  with open(fname, 'w') as f:
+  with open(fname, 'wb') as f:
     pickle.dump(obj, f)
 
 
 def load(fname):
-  with open(fname, 'r') as f:
+  with open(fname, 'rb') as f:
     return pickle.load(f)
 
 
@@ -52,7 +52,7 @@ class BatchLoader(object):
       ydata[-1] = data[0].copy()
       data_char = np.zeros([data.shape[0], self.max_word_length])
 
-      for idx in xrange(data.shape[0]):
+      for idx in range(data.shape[0]):
         data_char[idx] = all_data_char[split][idx]
 
       if split < 2:
@@ -141,13 +141,13 @@ class BatchLoader(object):
               word = word[2:]
               output_tensor[word_num] = word2idx['|']
             else:
-              if not word2idx.has_key(word):
+              if word not in word2idx:
                 idx2word.append(word)
                 word2idx[word] = len(idx2word) - 1
               output_tensor[word_num] = word2idx[word]
 
             for char in word:
-              if not char2idx.has_key(char):
+              if char not in char2idx:
                 idx2char.append(char)
                 char2idx[char] = len(idx2char) - 1
               chars.append(char2idx[char])
@@ -156,7 +156,7 @@ class BatchLoader(object):
             if len(chars) == max_word_length:
               chars[-1] = char2idx['}']
 
-            for idx in xrange(min(len(chars), max_word_length)):
+            for idx in range(min(len(chars), max_word_length)):
               output_char[word_num][idx] = chars[idx]
             word_num += 1
 

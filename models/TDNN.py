@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from .ops import conv2d
-from base import Model
+from .base import Model
 
 class TDNN(Model):
   """Time-delayed Nueral Network (cf. http://arxiv.org/abs/1508.06615v4)
@@ -38,6 +38,9 @@ class TDNN(Model):
       layers.append(tf.squeeze(pool))
 
     if len(kernels) > 1:
-      self.output = tf.concat(1, layers)
+      # old -- concat(concat_dim, values, name="concat")
+      # new -- concat(values, axis, name='concat')
+      # self.output = tf.concat(1, layers)
+      self.output = tf.concat(layers, 1)
     else:
       self.output = layers[0]
